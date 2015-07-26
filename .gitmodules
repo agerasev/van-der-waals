@@ -1,0 +1,3 @@
+[submodule "libcl4u"]
+	path = libcl4u
+	url = http://github.com/nthend/libcl4u
