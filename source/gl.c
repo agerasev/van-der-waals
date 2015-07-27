@@ -76,13 +76,15 @@ void initGL()
 	glAttachShader(program, shader_frag);
 	glLinkProgram(program);
 	
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(0.0f,0.0f,0.0f,1.0f);
+	glPointSize(8.0f);
 }
 
 void drawGLBuffer(GLuint buffer, GLuint size, GLuint stride)
 {
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-	glPointSize(16.0f);
 	
 	// Draw buffer
 	glUseProgram(program);

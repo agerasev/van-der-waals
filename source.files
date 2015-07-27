@@ -2,7 +2,7 @@ CMakeLists.txt
 gl/shader.vert
 gl/shader.frag
 cl/opencl.h
-cl/kernel.cl
+cl/kernel.c
 clean.sh
 build.sh
 source/gl.c

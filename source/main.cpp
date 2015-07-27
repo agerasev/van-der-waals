@@ -7,7 +7,6 @@
 #include "cl/program.hpp"
 #include "cl/gl_buffer_object.hpp"
 
-
 int main(int argc, char *argv[])
 {
 	SDL_Window *sdl_window = SDL_CreateWindow(
@@ -50,28 +49,37 @@ int main(int argc, char *argv[])
 		return -4;
 	}
 	
-	static const int BUFFER_SIZE = 2*3*3;
+	static const int COUNT = 100;
 	
 	initGL();
 	
 	cl::session *session = new cl::session;
-	cl::program *program = new cl::program("cl/kernel.cl",session->get_context().get_cl_context(),session->get_device_id());
-	cl::gl_buffer_object *buffer_src = new cl::gl_buffer_object(session->get_context(),BUFFER_SIZE*sizeof(float));
-	cl::gl_buffer_object *buffer_dst = new cl::gl_buffer_object(session->get_context(),BUFFER_SIZE*sizeof(float));
+	cl::program *program = new cl::program("cl/kernel.c",session->get_context().get_cl_context(),session->get_device_id());
+	cl::gl_buffer_object *buffer_src = new cl::gl_buffer_object(session->get_context(),2*3*COUNT*sizeof(float));
+	cl::gl_buffer_object *buffer_dst = new cl::gl_buffer_object(session->get_context(),2*3*COUNT*sizeof(float));
 	
 	program->bind_queue(session->get_queue().get_cl_command_queue());
 	buffer_src->bind_queue(session->get_queue().get_cl_command_queue());
 	buffer_dst->bind_queue(session->get_queue().get_cl_command_queue());
-
-	float buffer_data[BUFFER_SIZE] = {
-		0.0f,0.0f,0.0f, 1.0f,-1.0f,0.0f,
-		1.0f,0.0f,0.0f, 0.0f,1.0f,0.0f,
-		0.0f,1.0f,0.0f, -1.0f,0.0f,0.0f
-	};
+	
+	unsigned int lca = 0x23456789u, lcb = 0x12b8d2afu, seed = 0x36a7843bu;
+	float buffer_data[2*3*COUNT];
+	for(int i = 0; i < COUNT; ++i)
+	{
+		for(int j = 0; j < 3; ++j)
+		{
+			buffer_data[2*3*i + j] = 2.0*(double)(seed = lca*seed + lcb)/(double)0xffffffffu - 1.0;
+		}
+		for(int j = 0; j < 3; ++j)
+		{
+			buffer_data[2*3*i + 3 + j] = 10.0*(2.0*(double)(seed = lca*seed + lcb)/(double)0xffffffffu - 1.0);
+		}
+	}
+	
 	buffer_src->store_data(buffer_data);
 	session->get_queue().flush();
 	
-	cl::work_range *range = new cl::work_range({3});
+	cl::work_range *range = new cl::work_range({COUNT});
 	
 	bool done = false;
 	while(!done)
@@ -91,13 +99,17 @@ int main(int argc, char *argv[])
 			}
 		}
 		
-		program->get_kernel("interact")->evaluate(*range,buffer_src,buffer_dst,int(3));
+		program->get_kernel("interact")->evaluate(*range,buffer_src,buffer_dst,int(COUNT));
+		session->get_queue().flush();
 		program->get_kernel("interact")->print_time();
-		drawGLBuffer(buffer_src->get_gl_buffer(),3,2*3*sizeof(float));
 		
+		drawGLBuffer(buffer_src->get_gl_buffer(),COUNT,2*3*sizeof(float));
+		
+		/*
 		cl::gl_buffer_object *tmp = buffer_src;
 		buffer_src = buffer_dst;
 		buffer_dst = tmp;
+		*/
 		
 		SDL_GL_SwapWindow(sdl_window);
 	}
